@@ -117,8 +117,8 @@ class Platform(object):
 
     def act(self):
         self.__inc_angle__()
-        self.__angle_flow__()
-        self.__position_go__()
+        # self.__angle_flow__()
+        # self.__position_go__()
 
     def report(self):
         # delete returning of fixture and body
@@ -136,7 +136,7 @@ class Rocket(object):
         self.type = "actor"
         self.world_obj = world_obj  # not optimal
         self.color = (np.random.random_integers(50, 150), np.random.random_integers(50, 150), 255, 255)
-        self.position_x = (world_obj.screen_width / world_obj.pixels_per_meter) / 2 + np.random.random_integers(-15, 15)
+        self.position_x = (world_obj.screen_width / world_obj.pixels_per_meter) / 2 + np.random.random_integers(-2, 2)
         self.position_y = (world_obj.screen_height / world_obj.pixels_per_meter) / 4 * 4
         self.position_angle = 0
         #
@@ -161,19 +161,19 @@ class Rocket(object):
                                                    density=1,
                                                    friction=0.3,
                                                    userData="wings")  # for naming this fixture
-        self.fuel = 999.9  # 100.0
+        self.fuel = 100000  # 100.0
         self.consumption = 1.0  # 0.1
         # add penalty to durability depending on the fuel balance | in order to make strategy more complex
         self.durability = 9.0  # 1.0
         #
-        self.body.linearVelocity[1] = -39.0  # -30.0
-        self.body.linearVelocity[0] = np.random.random_integers(-39, 39) * 1.0  # -20.0 | -30.0 in video
+        self.body.linearVelocity[1] = -25.0  # -30.0
+        self.body.linearVelocity[0] = np.random.random_integers(-15, 15) * 1.0  # -20.0 | -30.0 in video
         #
         self.body.angle += 0.2999 * (self.body.linearVelocity[0] / 39.0)  # np.sign(self.body.linearVelocity[0])
         #
         self.enj = True
-        self.left_enj_power = 500.0
-        self.right_enj_power = 500.0
+        self.left_enj_power = 600.0
+        self.right_enj_power = 600.0
         self.main_enj_power = 700.0  # default 500.0 if 599.0 or 700.0 minus to fuel
         #
         self.live = True
@@ -291,7 +291,7 @@ class Rocket(object):
         self.__is_alive__()
 
     def __up__(self):
-        if self.fuel > 0 and self.enj:
+        if self.enj:
             f = self.body.GetWorldVector(localVector=(0.0, self.main_enj_power))
             p = self.body.GetWorldPoint(localPoint=(0.0, 0.0 - self.height))
             if self.debug:
@@ -303,7 +303,7 @@ class Rocket(object):
             self.enj = False
 
     def __left__(self):
-        if self.fuel > 0 and self.enj:
+        if self.enj:
             f = self.body.GetWorldVector(localVector=(0.0, self.left_enj_power))
             p = self.body.GetWorldPoint(localPoint=(2.0, 0.0 - self.height))
             self.body.ApplyForce(f, p, True)
@@ -313,7 +313,7 @@ class Rocket(object):
             self.enj = False
 
     def __right__(self):
-        if self.fuel > 0 and self.enj:
+        if self.enj:
             f = self.body.GetWorldVector(localVector=(0.0, self.right_enj_power))
             p = self.body.GetWorldPoint(localPoint=(-2.0, 0.0 - self.height))
             self.body.ApplyForce(f, p, True)
@@ -392,6 +392,7 @@ class Simulation(object):
             # 
 
     def __restart__(self, world_obj, simulation_array):
+        self.step_number = 0
         self.win = "none"
         self.terminal_state = False
         self.score_flag = False
@@ -401,7 +402,7 @@ class Simulation(object):
                 world_obj.world.DestroyBody(entity.body)
                 simulation_array.remove(entity)
                 # del entity   # manual deleting obj
-                world_obj.wind_str = np.random.random_integers(-39, 39) * 1.0
+                world_obj.wind_str = 0
                 simulation_array.append(Rocket(world_obj))
         return simulation_array
 
@@ -461,19 +462,26 @@ class Simulation(object):
                 # self.message += "ts " + str(self.terminal_state)
                 # self.message += "sc " + str(self.score)
                 fuel = (entity.fuel * entity.enj) / 1000
-                dist = ((entity.body.position[0] - ((world_obj.screen_width / world_obj.pixels_per_meter) / 2.0)) ** 2)/ 1000
+                # dist = ((entity.body.position[0] - (
+                #             (world_obj.screen_width / world_obj.pixels_per_meter) / 2.0)) ** 2) / 1000
+
+                dist = np.amin([entity.dist1, entity.dist2]) / 100
+
                 angle = entity.body.angle
-                posy = entity.body.position.y / world_obj.screen_height
-                posx = entity.body.position.x / world_obj.screen_width
-                vy = entity.body.linearVelocity[1]/100
-                vx = entity.body.linearVelocity[0]/100
+
+                posy = entity.body.position.y * 10 / world_obj.screen_height
+                posx = entity.body.position.x / 100
+                       # / world_obj.screen_width
+                vy = entity.body.linearVelocity[1] / 100
+                vx = entity.body.linearVelocity[0] / 100
                 av = entity.body.angularVelocity
 
-                if entity.body.position.y <= 0:
-                    self.win = "destroyed"
+                if entity.body.position.y <= 0 or posx < -0.1 or posx > 1.1 or posy > 1.5:
+                    self.win = "dnf"
 
-                self.message += "| Dist: " + str(np.round(np.amin([entity.dist1, entity.dist2]), 1))  # \
-                #                + " " + str(np.round(entity.dist1, 1)) + " " + str(np.round(entity.dist2, 1))
+                self.message += " | Step: " + str(self.step_number)
+                self.message += "| Dist: " + str(
+                    np.round(np.amin([entity.dist1, entity.dist2]), 1)) + " | Posy: " + str(np.round(posy, 2))
                 self.message += " | Fuel: " + str(np.round((entity.fuel * entity.enj), 1)) + " | Eng: " + str(
                     entity.enj) \
                                 + " | Live: " + str(entity.live) + " | Cnt: " + str(entity.contact) \
@@ -497,7 +505,7 @@ class Simulation(object):
                             pygame.draw.circle(self.screen, (255, 255, 0, 255), (int(vert[0]), int(vert[1])), 3, 0)
                         if entity.type == "actor":
                             pygame.draw.circle(self.screen, (0, 255, 0, 255), (
-                            int(entity.debug_p[0]) * 10, self.screen_height - int(entity.debug_p[1]) * 10), 3, 0)
+                                int(entity.debug_p[0]) * 10, self.screen_height - int(entity.debug_p[1]) * 10), 3, 0)
                     # engines
                     if keys[0] != 0 and entity.type == "actor" and entity.enj and fixture.userData != "wings":
                         pygame.draw.polygon(self.screen, (255, np.random.random_integers(100, 200), 0, 150),
@@ -514,16 +522,21 @@ class Simulation(object):
                                             (vertices[1], vertices[0],
                                              (vertices[1][0] + np.random.random_integers(3, 7),
                                               vertices[1][1] + np.random.random_integers(11, 17))))
+
+        contact = 0
+
         # checking status
         for entity in simulation_array:
             if entity.type == "actor":
-                if entity.contact and entity.contact_time >= 0 and -0.29 < entity.body.angle < 0.29:
+                contact = not entity.live
+
+                if entity.contact and entity.contact_time >= 0.1 and -0.29 < entity.body.angle < 0.29:
                     # why 2.25 read in obj field + 0.5
                     entity.color = (0, 255, 0, 255)
                     print("WIN")
                     self.win = "landed"
                     # entity.wind = False   # stops wind for this obj
-                if not entity.live and (not -0.29 < entity.body.angle < 0.29 or entity.body.linearVelocity[1] < -30):
+                if contact and (not -1 < entity.body.angle < 1 or entity.body.linearVelocity[1] < -20):
                     entity.color = (255, 0, 0, 255)
                     print("LOSS")
                     self.win = "destroyed"
@@ -582,7 +595,8 @@ class Simulation(object):
             "State": self.win,
             "Dist": dist,
             "Angle": angle,
-            "Angular Velocity": av
+            "Angular Velocity": av,
+            "Contact": contact
         }
 
         if self.win != "none":
