@@ -48,7 +48,7 @@ class Agent:
             self.model = self.create_model()
             self.target_model = self.create_model()
         else:
-            self.model = load_model('current_best_target.h5')
+            self.model = load_model('current_best.h5')
 
     def target_train(self):
         if not self.load_weights:

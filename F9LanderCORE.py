@@ -136,7 +136,7 @@ class Rocket(object):
         self.type = "actor"
         self.world_obj = world_obj  # not optimal
         self.color = (np.random.random_integers(50, 150), np.random.random_integers(50, 150), 255, 255)
-        self.position_x = (world_obj.screen_width / world_obj.pixels_per_meter) / 2 + np.random.random_integers(-2, 2)
+        self.position_x = (world_obj.screen_width / world_obj.pixels_per_meter) / 2 + np.random.random_integers(-30, 30)
         self.position_y = (world_obj.screen_height / world_obj.pixels_per_meter) / 4 * 4
         self.position_angle = 0
         #
@@ -167,14 +167,14 @@ class Rocket(object):
         self.durability = 9.0  # 1.0
         #
         self.body.linearVelocity[1] = -25.0  # -30.0
-        self.body.linearVelocity[0] = np.random.random_integers(-15, 15) * 1.0  # -20.0 | -30.0 in video
+        self.body.linearVelocity[0] = np.random.random_integers(-1, 1) * 1.0  # -20.0 | -30.0 in video
         #
         self.body.angle += 0.2999 * (self.body.linearVelocity[0] / 39.0)  # np.sign(self.body.linearVelocity[0])
         #
         self.enj = True
-        self.left_enj_power = 600.0
-        self.right_enj_power = 600.0
-        self.main_enj_power = 700.0  # default 500.0 if 599.0 or 700.0 minus to fuel
+        self.left_enj_power = 400.0
+        self.right_enj_power = 400.0
+        self.main_enj_power = 500.0  # default 500.0 if 599.0 or 700.0 minus to fuel
         #
         self.live = True
         self.contact = False
